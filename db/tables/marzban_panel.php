@@ -51,7 +51,8 @@ return [
         on_hold_test varchar(60) NOT NULL,
         version_panel varchar(60) NOT NULL,
         customvolume TEXT NULL,
-        hide_user TEXT NULL
+        hide_user TEXT NULL,
+        hmpanel_id VARCHAR(100) NULL
         SQL,
     'columns' => [
         ['code_panel', null, 'VARCHAR(50)'],
