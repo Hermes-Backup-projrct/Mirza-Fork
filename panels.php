@@ -3,6 +3,7 @@ ini_set('error_log', 'error_log');
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Marzban.php';
 require_once __DIR__ . '/x-ui_single.php';
+require_once __DIR__ . '/hmpanel.php';
 require_once __DIR__ . '/hiddify.php';
 require_once __DIR__ . '/marzneshin.php';
 require_once __DIR__ . '/alireza_single.php';
@@ -146,7 +147,33 @@ class ManagePanel
                 $Output['subscription_url'] = $data_Output['subscription_url'];
                 $Output['configs'] = $links_user;
             }
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $subId = bin2hex(random_bytes(8));
+            $data_Output = hmpanel_add_client(
+                $Get_Data_Panel, $usernameC, $expire, $data_limit,
+                isset($Get_Data_Product['inbounds']) && $Get_Data_Product['inbounds'] != null
+                    ? $Get_Data_Product['inbounds'] : $Get_Data_Panel['inbounds'],
+                $note);
+            if (!empty($data_Output['error'])) {
+                return array('status' => 'Unsuccessful', 'msg' => $data_Output['error']);
+            } elseif (!empty($data_Output['status']) && $data_Output['status'] >= 400) {
+                $errBody = json_decode(isset($data_Output['body']) ? $data_Output['body'] : '', true);
+                return array('status' => 'Unsuccessful',
+                    'msg' => is_array($errBody) && !empty($errBody['message']) ? $errBody['message'] : $data_Output['status']);
+            }
+            $created = json_decode(isset($data_Output['body']) ? $data_Output['body'] : '', true);
+            if (!is_array($created)) { return array('status' => 'Unsuccessful', 'msg' => 'object invalid'); }
+            $Output['status'] = 'successful';
+            $Output['username'] = $usernameC;
+            $subKey = isset($created['subId']) ? $created['subId'] : $subId;
+            $base = !empty($Get_Data_Panel['linksubx']) ? $Get_Data_Panel['linksubx'] : rtrim($Get_Data_Panel['url_panel'], '/');
+            $linksub = rtrim($base, '/') . '/s/' . $subKey;
+            $Output['subscription_url'] = $linksub;
+            $Output['configs'] = hmpanel_fetch_subscription_links($linksub);
+            if ($invoice != false) {
+                $Output['subscription_url'] = "https://$domainhosts/sub/" . $invoice['id_invoice'];
+            }
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             $subId = bin2hex(random_bytes(8));
             if (isset($Get_Data_Product['inbounds']) and $Get_Data_Product['inbounds'] != null) {
                 $inbounds = $Get_Data_Product['inbounds'];
@@ -599,7 +626,17 @@ class ManagePanel
                     );
                 }
             }
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $data_user = hmpanel_get_client($Get_Data_Panel, $username);
+            if (!is_array($data_user) || (isset($data_user['status']) ? $data_user['status'] : '') === 'Unsuccessful') {
+                return array('status' => 'Unsuccessful',
+                    'msg' => isset($data_user['msg']) ? $data_user['msg'] : 'User not found');
+            }
+            $Output = $data_user;
+            if ($invoice != false && !empty($Output['subscription_url'])) {
+                $Output['subscription_url'] = "https://$domainhosts/sub/" . $invoice['id_invoice'];
+            }
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             $user_data = get_clinets($username, $Get_Data_Panel);
             if (!empty($user_data['error'])) {
                 return array(
@@ -1099,7 +1136,19 @@ class ManagePanel
                     'subscription_url' => $Data_User['subscription_url']
                 );
             }
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $revoked = hmpanel_revoke_sub($Get_Data_Panel, $username);
+            if (!empty($revoked['error']) || (isset($revoked['status']) && $revoked['status'] >= 400)) {
+                $Output = array('status' => 'Unsuccessful', 'msg' => 'Unsuccessful');
+            } else {
+                $subId = bin2hex(random_bytes(8));
+                $base = !empty($Get_Data_Panel['linksubx']) ? $Get_Data_Panel['linksubx'] : rtrim($Get_Data_Panel['url_panel'], '/');
+                $linksub = rtrim($base, '/') . '/s/' . $subId;
+                $Output = array('status' => 'successful',
+                    'configs' => hmpanel_fetch_subscription_links($linksub),
+                    'subscription_url' => $linksub);
+            }
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             $subId = bin2hex(random_bytes(8));
             $config = array(
                 "email" => $username,
@@ -1335,7 +1384,15 @@ class ManagePanel
                     'username' => $username,
                 );
             }
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $UsernameData = hmpanel_remove_client($Get_Data_Panel, $username);
+            if (!empty($UsernameData['error'])) {
+                return array('status' => 'Unsuccessful', 'msg' => $UsernameData['error']);
+            } elseif (!empty($UsernameData['status']) && $UsernameData['status'] >= 400) {
+                return array('status' => 'Unsuccessful', 'msg' => $UsernameData['status']);
+            }
+            $Output = array('status' => 'successful', 'msg' => null);
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             $UsernameData = removeClient($Get_Data_Panel, $username);
             if (!empty($UsernameData['status']) && $UsernameData['status'] != 200) {
                 return array(
@@ -1557,7 +1614,22 @@ class ManagePanel
                 'status' => true,
                 'data' => $modify
             );
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $data_user = $this->DataUser($name_panel, $username);
+            $payload = array(
+                "total" => isset($config['totalGB']) ? $config['totalGB'] : (isset($data_user['data_limit']) ? $data_user['data_limit'] : 0),
+                "expiryTime" => isset($config['expiryTime']) ? $config['expiryTime'] : (isset($data_user['expire']) && $data_user['expire'] > 0 ? $data_user['expire'] * 1000 : 0),
+                "enable" => isset($config['enable']) ? $config['enable'] : true,
+            );
+            if (!empty($config['subId'])) { $payload['subId'] = $config['subId']; }
+            $modify = hmpanel_update_client($Get_Data_Panel, $username, $payload);
+            if (!empty($modify['error'])) {
+                return array('status' => false, 'msg' => $modify['error']);
+            } elseif (!empty($modify['status']) && $modify['status'] >= 400) {
+                return array('status' => false, 'msg' => $modify['status']);
+            }
+            $Output = array('status' => true, 'msg' => null);
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             $data_user = $this->DataUser($name_panel, $username);
             $data = array(
                 "email" => $username,
@@ -1783,7 +1855,11 @@ class ManagePanel
                 'status' => 'successful',
                 'msg' => null
             );
-        } elseif ($Get_Data_Panel['type'] == "x-ui_single") {
+                } elseif ($Get_Data_Panel['type'] == "hmpanel") {
+            $status = ($DataUserOut['status'] == "active") ? false : true;
+            $this->Modifyuser($username, $name_panel, array("enable" => $status));
+            $Output = array('status' => 'successful', 'msg' => null);
+} elseif ($Get_Data_Panel['type'] == "x-ui_single") {
             if ($DataUserOut['status'] == "active") {
                 $status = false;
             } else {
@@ -1907,7 +1983,15 @@ class ManagePanel
                 'status' => true,
                 'msg' => 'successful'
             );
-        } elseif ($panel['type'] == 'x-ui_single') {
+                } elseif ($panel['type'] == 'hmpanel') {
+            $reset = hmpanel_reset_traffic($panel, $username);
+            if (!empty($reset['error'])) {
+                return array('status' => false, 'msg' => 'error : ' . $reset['error']);
+            } elseif (!empty($reset['status']) && $reset['status'] >= 400) {
+                return array('status' => false, 'msg' => 'error code : ' . $reset['status']);
+            }
+            return array('status' => true, 'msg' => null);
+} elseif ($panel['type'] == 'x-ui_single') {
             $reset = ResetUserDataUsagex_uisin($username, $panel);
             if (!empty($reset['status']) && $reset['status'] != 200) {
                 return array(
@@ -2105,7 +2189,9 @@ class ManagePanel
                 'expire_strategy' => $expire_strotegy,
                 'data_limit' => $data_limit_new
             );
-        } elseif ($panel['type'] == "x-ui_single") {
+                } elseif ($panel['type'] == "hmpanel") {
+            $data = array("totalGB" => $data_limit_new, "expiryTime" => $time_new * 1000, "enable" => true);
+} elseif ($panel['type'] == "x-ui_single") {
             $data = array(
                 "totalGB" => $data_limit_new,
                 "expiryTime" => $time_new * 1000,
@@ -2274,7 +2360,9 @@ class ManagePanel
             $data = array(
                 'data_limit' => $new_limit,
             );
-        } elseif ($panel['type'] == "x-ui_single") {
+                } elseif ($panel['type'] == "hmpanel") {
+            $data = array("total" => $new_limit);
+} elseif ($panel['type'] == "x-ui_single") {
             $data = array(
                 "totalGB" => $new_limit,
             );
@@ -2409,7 +2497,10 @@ class ManagePanel
                 'expire_strategy' => "fixed_date",
 
             );
-        } elseif ($panel['type'] == "x-ui_single") {
+                } elseif ($panel['type'] == "hmpanel") {
+            $new_limit = $new_limit * 1000;
+            $data = array("expiryTime" => $new_limit);
+} elseif ($panel['type'] == "x-ui_single") {
             $new_limit = $new_limit * 1000;
             $data = array(
                 "expiryTime" => $new_limit,

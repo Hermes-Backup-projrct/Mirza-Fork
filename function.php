@@ -1536,6 +1536,8 @@ function outtypepanel($typepanel, $message)
         sendmessage($from_id, $message, $option_mirza, 'HTML');
     } elseif ($typepanel == "rebecca") {
         sendmessage($from_id, $message, $optionrebecca, 'HTML');
+    } elseif ($typepanel == "hmpanel") {
+        sendmessage($from_id, $message, $optionX_ui_single, 'HTML');
     }
 }
 

@@ -92,5 +92,6 @@ return [
         ['version_panel', '0', 'VARCHAR(60)'],
         ['customvolume', $zeroVolume, 'TEXT'],
         ['hide_user', null, 'TEXT'],
+        ['hmpanel_id', null, 'VARCHAR(100)'],
     ],
 ];

@@ -761,7 +761,7 @@ if (in_array($text, $textadmin) || $datain == "admin") {
         savedata("save", "username", "null");
         savedata("save", "password", "null");
         return;
-    } elseif ($userdata['type'] == "s_ui" || $userdata['type'] == "WGDashboard" || $userdata['type'] == "x-ui_single" || $userdata['type'] == "mirza_agent" || $userdata['type'] == "rebecca") {
+    } elseif ($userdata['type'] == "s_ui" || $userdata['type'] == "WGDashboard" || $userdata['type'] == "x-ui_single" || $userdata['type'] == "mirza_agent" || $userdata['type'] == "rebecca" || $userdata['type'] == "hmpanel") {
         sendmessage($from_id, $textbotlang['Admin']['agentbot']['askToken'], $backadmin, 'HTML');
         step('add_password_panel', $from_id);
         savedata("save", "username", "null");
@@ -870,7 +870,15 @@ if (in_array($text, $textadmin) || $datain == "admin") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['addedPanel'], $keyboardadmin, 'HTML');
     sendmessage($from_id, "🥳", $keyboardadmin, 'HTML');
     step("home", $from_id);
-    if ($userdata['type'] == "x-ui_single" or $userdata['type'] == "alireza_single") {
+    if ($userdata['type'] == "hmpanel") {
+        // HMPanel addresses panels by their internal UUID. Look it up now and
+        // cache it so later client/inbound calls do not need to rescan.
+        $scan = hmpanel_resolve_panel_id($userdata['namepanel'], $userdata['url_panel'], $userdata['username'], $userdata['password']);
+        if (!empty($scan['hmpanel_id'])) {
+            update("marzban_panel", "hmpanel_id", $scan['hmpanel_id'], 'name_panel', $userdata['namepanel']);
+        }
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteSetInboundAndDomain'], null, 'HTML');
+    } elseif ($userdata['type'] == "x-ui_single" or $userdata['type'] == "alireza_single") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteSetInboundAndDomain'], null, 'HTML');
     } elseif ($userdata['type'] == "marzban") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteSetProtocolInbound'], null, 'HTML');
@@ -6576,7 +6584,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     $typepanel = select("marzban_panel", "*", "name_panel", $text, "select")['type'];
     if ($typepanel == "marzban") {
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionathmarzban, 'HTML');
-    } elseif ($typepanel == "x-ui_single") {
+    } elseif ($typepanel == "x-ui_single" or $typepanel == "hmpanel") {
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionathx_ui, 'HTML');
     } elseif ($typepanel == "hiddify") {
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionathx_ui, 'HTML');

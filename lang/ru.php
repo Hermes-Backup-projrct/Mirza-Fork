@@ -4140,6 +4140,7 @@ ID пользователя : %s
                 'subLinkDomain' => '🔗 Домен ссылки подписки',
                 'panelTypeSanaei' => 'Sanaei один порт',
                 'panelTypeAlireza' => 'Alireza один порт',
+            'panelTypeHmpanel' => "HMPanel (менеджер 3x-ui)",
                 'usernameMethodAgentCustom' => 'Произвольный текст агента + порядковый номер',
                 'acceptRulesButton' => '✅ Я принимаю правила',
         ],

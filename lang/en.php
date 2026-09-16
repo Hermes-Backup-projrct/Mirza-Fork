@@ -4140,6 +4140,7 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'subLinkDomain' => '🔗 Subscription link domain',
                 'panelTypeSanaei' => 'Sanaei single port',
                 'panelTypeAlireza' => 'Alireza single port',
+            'panelTypeHmpanel' => "HMPanel (3x-ui manager)",
                 'usernameMethodAgentCustom' => 'Custom agent text + sequential number',
                 'acceptRulesButton' => '✅ I accept the rules',
         ],

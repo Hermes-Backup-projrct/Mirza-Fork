@@ -1116,6 +1116,9 @@ $keyboardtypepanel = json_encode([
             ['text' => $textbotlang['keyboard']['mirzaAgentPanel'], 'callback_data' => "typepanel#mirza_agent"]
         ],
         [
+            ['text' => $textbotlang['keyboard']['panelTypeHmpanel'], 'callback_data' => 'typepanel#hmpanel']
+        ],
+        [
             ['text' => $textbotlang['keyboard']['panelTypeSanaei'], 'callback_data' => 'typepanel#x-ui_single'],
             ['text' => $textbotlang['keyboard']['panelTypeAlireza'], 'callback_data' => 'typepanel#alireza_single']
         ],
